@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Smart Gesture Camera V4</title>
+    <title>AI Smart Gesture Camera V5</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -11,6 +11,7 @@
         :root {
             --primary: #ff69b4;
             --surface: rgba(15, 23, 42, 0.75);
+            --blue: #3b82f6;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,14 +48,14 @@
 
         /* Filter Core */
         .blur-active { filter: blur(15px) brightness(0.85); }
-        .blur-light { filter: blur(6px) brightness(0.95); } /* Blur sedikit untuk 1 jari */
+        .blur-light { filter: blur(6px) brightness(0.95); } 
         
         .filter-sepia { filter: sepia(0.8); }
         .filter-bw { filter: grayscale(1); }
         .filter-vintage { filter: contrast(1.2) saturate(1.5) sepia(0.3) hue-rotate(-15deg); }
         .filter-neon { filter: saturate(2) hue-rotate(90deg) contrast(1.5); }
 
-        /* Frame Landscape Safe */
+        /* Frame */
         .cute-frame {
             position: absolute;
             inset: 0;
@@ -68,10 +69,7 @@
             z-index: 20;
             background: radial-gradient(circle, transparent 70%, rgba(255, 105, 180, 0.1) 100%);
         }
-        .cute-frame.active {
-            opacity: 1;
-            transform: scale(1);
-        }
+        .cute-frame.active { opacity: 1; transform: scale(1); }
 
         .animated-emoji {
             position: absolute;
@@ -82,12 +80,12 @@
         .e-2 { top: -2%; right: -2%; animation: float 3s ease-in-out infinite 1s; }
         .e-3 { bottom: -2%; left: -2%; animation: float 3s ease-in-out infinite 0.5s; }
         .e-4 { bottom: -2%; right: -2%; animation: float 3s ease-in-out infinite 1.5s; }
-
         @keyframes float {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             50% { transform: translateY(-15px) rotate(15deg); }
         }
 
+        /* Typewriter Text */
         .romantic-text {
             position: absolute;
             inset: 0;
@@ -98,7 +96,7 @@
             font-size: clamp(2rem, 5vw, 4rem);
             font-weight: 700;
             color: #fff;
-            text-shadow: 0 5px 15px rgba(0,0,0,0.8), 0 0 20px var(--primary);
+            text-shadow: 0 5px 15px rgba(0,0,0,0.9), 0 0 25px var(--primary);
             z-index: 30;
             pointer-events: none;
             padding: 20px;
@@ -106,6 +104,7 @@
             line-height: 1.3;
         }
 
+        /* Particles */
         #particles {
             position: absolute;
             inset: 0;
@@ -124,16 +123,16 @@
             100% { transform: translateY(-120vh) scale(1.8) rotate(45deg); opacity: 0; }
         }
 
-        .filter-fab {
+        /* FAB Buttons Base */
+        .fab {
             position: absolute;
             bottom: 30px;
-            right: 30px;
             width: 60px;
             height: 60px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -141,20 +140,33 @@
             font-size: 1.8rem;
             z-index: 100;
             cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .fab:active { transform: scale(0.9); }
+
+        /* Filter Toggle (Right) */
+        .filter-fab {
+            right: 30px;
             opacity: 0;
             transform: scale(0.8) translateY(20px);
             pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
         .filter-fab.show {
             opacity: 1;
             transform: scale(1) translateY(0);
             pointer-events: auto;
         }
-        .filter-fab:active {
-            transform: scale(0.9);
-            background: var(--primary);
+
+        /* Zoom Toggle (Left) - Selalu tampil */
+        .zoom-fab {
+            left: 30px;
+            border-color: rgba(255,255,255,0.2);
+        }
+        .zoom-fab.active {
+            background: var(--blue);
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
         }
 
         .status {
@@ -171,7 +183,6 @@
             gap: 12px;
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         .dot {
             width: 12px; height: 12px; border-radius: 50%;
@@ -226,7 +237,9 @@
         <div class="romantic-text" id="romantic-text"></div>
         <div id="particles"></div>
 
-        <div class="filter-fab" id="filter-fab" onclick="cycleFilter()">🎨</div>
+        <!-- Tombol Toggle Kiri (Zoom) dan Kanan (Filter) -->
+        <div class="fab zoom-fab" id="zoom-fab" onclick="toggleZoomMode()">🔍</div>
+        <div class="fab filter-fab" id="filter-fab" onclick="cycleFilter()">🎨</div>
     </div>
 
     <script>
@@ -238,11 +251,14 @@
         const textOverlay = document.getElementById('romantic-text');
         const particles = document.getElementById('particles');
         const filterFab = document.getElementById('filter-fab');
+        const zoomFab = document.getElementById('zoom-fab');
 
         let isLoaded = false;
         
+        // Zoom Core Engine
         let targetZoom = 1;
         let currentZoom = 1;
+        let isZoomModeEnabled = false; // LOCK mechanism untuk mencegah jitter
 
         const filters = ['none', 'sepia', 'vintage', 'bw', 'neon'];
         let currentFilterIdx = 0;
@@ -250,14 +266,14 @@
         let typeInterval = null;
         let isTyping = false;
         
-        // Teks sesuai permintaan spesifik
+        // Exact text match per spesifikasi
         const msg = "i love you🤍🤍🤍\nmanusia favorite kuuu🫶🏻🫰🏻";
 
         let confirmedState = 'idle';
         const stateBuffer = [];
-        const BUFFER_SIZE = 5; 
+        // Reduksi buffer dari 5 ke 3 untuk merespons gestur lebih cepat (low latency tracking)
+        const BUFFER_SIZE = 3; 
 
-        // Emoji Configurations
         const EMOJI_HEART = ['❤️', '💖', '💕', '🥰', '✨'];
         const EMOJI_ROMANTIC = ['🤍', '🌸', '🌹', '🫶🏻', '🫰🏻', '✨'];
 
@@ -269,29 +285,40 @@
             return getDist(lm[tipIdx], lm[0]) > getDist(lm[jointIdx], lm[0]);
         }
 
+        // Feature Toggles
         window.cycleFilter = function() {
             currentFilterIdx = (currentFilterIdx + 1) % filters.length;
             const activeFilter = filters[currentFilterIdx];
-            
             video.classList.remove('filter-sepia', 'filter-bw', 'filter-vintage', 'filter-neon');
             if (activeFilter !== 'none') video.classList.add(`filter-${activeFilter}`);
         };
 
+        window.toggleZoomMode = function() {
+            isZoomModeEnabled = !isZoomModeEnabled;
+            zoomFab.classList.toggle('active', isZoomModeEnabled);
+            
+            if (!isZoomModeEnabled) {
+                targetZoom = 1; // Reset instant jika mode dimatikan
+                if (confirmedState === 'pinch') applyState('idle');
+            }
+        };
+
+        // Render loop for smooth zoom interpolation
         function renderLoop() {
-            currentZoom += (targetZoom - currentZoom) * 0.1;
+            // Factor 0.08 untuk sedikit extra smoothing mengatasi sisa jitter mikro
+            currentZoom += (targetZoom - currentZoom) * 0.08;
             const z = Math.max(1, Math.min(currentZoom, 4));
             video.style.transform = `scaleX(-${z}) scaleY(${z})`;
             requestAnimationFrame(renderLoop);
         }
         requestAnimationFrame(renderLoop);
 
-        // Particle Emitter Dinamis
         function spawnParticles(emojiArray) {
             const p = document.createElement('div');
             p.className = 'fly-particle';
             p.innerText = emojiArray[Math.floor(Math.random() * emojiArray.length)];
             p.style.left = `${Math.random() * 80 + 10}%`;
-            p.style.fontSize = `${Math.random() * 1.5 + 2}rem`;
+            p.style.fontSize = `${Math.random() * 1.5 + 2.5}rem`;
             particles.appendChild(p);
             setTimeout(() => p.remove(), 3500);
         }
@@ -300,7 +327,7 @@
             if (confirmedState === state) return;
             confirmedState = state;
 
-            // Reset Sub-systems
+            // Reset UI
             cuteFrame.classList.remove('active');
             video.classList.remove('blur-active', 'blur-light');
             filterFab.classList.remove('show');
@@ -317,24 +344,24 @@
                     dot.style.background = "#22c55e"; 
                     break;
                 case 'pinky':
-                    statusText.innerText = "Filter Mode (Klik Ikon)";
+                    statusText.innerText = "Filter Terbuka (Kanan Bawah)";
                     dot.style.background = "#f59e0b"; 
                     filterFab.classList.add('show');
                     break;
                 case 'two':
-                    statusText.innerText = "2 Jari: Blur Total";
+                    statusText.innerText = "2 Jari: Blur Max";
                     dot.style.background = "#64748b"; 
-                    video.classList.add('blur-active'); // Blur kuat
+                    video.classList.add('blur-active'); 
                     break;
                 case 'five':
-                    statusText.innerText = "5 Jari: Ceria!";
+                    statusText.innerText = "5 Jari: Mode Imut!";
                     dot.style.background = "#a855f7"; 
                     cuteFrame.classList.add('active');
                     break;
                 case 'one':
                     statusText.innerText = "1 Jari: Romantis";
                     dot.style.background = "#ef4444"; 
-                    video.classList.add('blur-light'); // Blur ringan
+                    video.classList.add('blur-light'); 
                     
                     if (!isTyping) {
                         isTyping = true;
@@ -352,7 +379,7 @@
                     for(let i=0; i<3; i++) setTimeout(() => spawnParticles(EMOJI_HEART), i*200);
                     break;
                 case 'pinch':
-                    statusText.innerText = "Zooming (Cubit)";
+                    statusText.innerText = "Mencubit (Zooming...)";
                     dot.style.background = "#3b82f6"; 
                     break;
             }
@@ -397,23 +424,29 @@
                         rawState = 'one';
                     } else if (pinchDist < 0.03 && !midUp && !ringUp && !pinkyUp) {
                         rawState = 'heart';
-                    } else if (pinchDist >= 0.03 && pinchDist < 0.15 && !isFist) {
+                    } 
+                    // ZOOM STATE LOCK: Hanya izinkan state pinch jika Mode Zoom Aktif
+                    else if (isZoomModeEnabled && pinchDist >= 0.03 && pinchDist < 0.15 && !isFist) {
                         if (!midUp && !ringUp) rawState = 'pinch';
                     }
                 }
 
-                if (rawState === 'pinch') {
+                // Kalkulasi Skala Zoom hanya jika status confirmed = pinch & Mode Aktif
+                if (rawState === 'pinch' && isZoomModeEnabled) {
                     const pDist = getDist(hands[0][4], hands[0][8]);
                     let mappedZoom = 3.5 - ((pDist - 0.03) * (2.5 / 0.12));
+                    // Inject targetZoom. Pembatasan ekstrim dengan Math.max/min
                     targetZoom = Math.max(1, Math.min(mappedZoom, 4)); 
-                } else {
+                } else if (isZoomModeEnabled && rawState !== 'pinch') {
+                    // Perlahan kembali ke normal jika tangan lepas/mode diganti saat zoom aktif
                     targetZoom = 1;
                 }
 
-            } else {
+            } else if (isZoomModeEnabled) {
                 targetZoom = 1; 
             }
 
+            // Sistem Buffer untuk Akurasi
             stateBuffer.push(rawState);
             if (stateBuffer.length > BUFFER_SIZE) stateBuffer.shift();
 
@@ -421,21 +454,18 @@
                 applyState(rawState);
             }
 
-            // Continuous Emission sinkron dengan Frame Rate Kamera, berdasarkan `confirmedState`
-            if (confirmedState === 'heart' && Math.random() > 0.7) {
-                spawnParticles(EMOJI_HEART);
-            }
-            if (confirmedState === 'one' && Math.random() > 0.8) {
-                spawnParticles(EMOJI_ROMANTIC);
-            }
+            // Async Emitters
+            if (confirmedState === 'heart' && Math.random() > 0.7) spawnParticles(EMOJI_HEART);
+            if (confirmedState === 'one' && Math.random() > 0.8) spawnParticles(EMOJI_ROMANTIC);
         }
 
+        // Parameter Confidences diturunkan sedikit (0.7) untuk mengurangi drop frame = lebih cepat
         const hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
         hands.setOptions({
             maxNumHands: 2,
             modelComplexity: 1, 
-            minDetectionConfidence: 0.75, 
-            minTrackingConfidence: 0.75
+            minDetectionConfidence: 0.7, 
+            minTrackingConfidence: 0.7
         });
         hands.onResults(analyzeGestures);
 
@@ -446,7 +476,7 @@
 
         camera.start().catch(e => {
             console.error(e);
-            document.getElementById('load-text').innerText = "Kamera diblokir oleh peramban.";
+            document.getElementById('load-text').innerText = "Kamera diblokir oleh sistem.";
             document.querySelector('.spinner').style.display = 'none';
         });
     </script>
