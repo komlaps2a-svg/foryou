@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Smart Gesture Camera V3</title>
+    <title>AI Smart Gesture Camera V4</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -21,7 +21,7 @@
             font-family: 'Fredoka', sans-serif;
             overflow: hidden;
             width: 100vw;
-            height: 100dvh; /* Dynamic viewport fix untuk mobile */
+            height: 100dvh; 
         }
 
         .container {
@@ -46,16 +46,17 @@
         }
 
         /* Filter Core */
-        .blur-active { filter: blur(15px) brightness(0.9); }
+        .blur-active { filter: blur(15px) brightness(0.85); }
+        .blur-light { filter: blur(6px) brightness(0.95); } /* Blur sedikit untuk 1 jari */
+        
         .filter-sepia { filter: sepia(0.8); }
         .filter-bw { filter: grayscale(1); }
         .filter-vintage { filter: contrast(1.2) saturate(1.5) sepia(0.3) hue-rotate(-15deg); }
         .filter-neon { filter: saturate(2) hue-rotate(90deg) contrast(1.5); }
 
-        /* FIX: Bingkai Landscape tidak terpotong */
+        /* Frame Landscape Safe */
         .cute-frame {
             position: absolute;
-            /* Inset 0 & margin memastikan frame menempel tepi dalam layar dengan margin aman */
             inset: 0;
             margin: min(3vw, 20px);
             border: min(2vw, 12px) dotted var(--primary);
@@ -111,7 +112,7 @@
             pointer-events: none;
             z-index: 40;
         }
-        .heart-particle {
+        .fly-particle {
             position: absolute;
             bottom: -10%;
             font-size: 2.5rem;
@@ -123,7 +124,6 @@
             100% { transform: translateY(-120vh) scale(1.8) rotate(45deg); opacity: 0; }
         }
 
-        /* Minimalist Filter Icon (Kelingking) */
         .filter-fab {
             position: absolute;
             bottom: 30px;
@@ -205,7 +205,7 @@
 
     <div class="loader" id="loader">
         <div class="spinner"></div>
-        <span id="load-text">Membangunkan AI (Membutuhkan Internet)...</span>
+        <span id="load-text">Menginisialisasi Kamera & AI...</span>
     </div>
 
     <div class="container">
@@ -213,7 +213,7 @@
 
         <div class="status">
             <div class="dot" id="dot"></div>
-            <span id="status-text">Kalibrasi Kamera...</span>
+            <span id="status-text">Kalibrasi Gestur...</span>
         </div>
 
         <div class="cute-frame" id="cute-frame">
@@ -226,7 +226,6 @@
         <div class="romantic-text" id="romantic-text"></div>
         <div id="particles"></div>
 
-        <!-- Ikon Filter Minimalis -->
         <div class="filter-fab" id="filter-fab" onclick="cycleFilter()">🎨</div>
     </div>
 
@@ -242,29 +241,30 @@
 
         let isLoaded = false;
         
-        // Zoom Engine
         let targetZoom = 1;
         let currentZoom = 1;
 
-        // Filter Logic
         const filters = ['none', 'sepia', 'vintage', 'bw', 'neon'];
         let currentFilterIdx = 0;
 
-        // Typing State
         let typeInterval = null;
         let isTyping = false;
-        const msg = "i love you🤍🤍\nmanusia favorite kuuu.";
+        
+        // Teks sesuai permintaan spesifik
+        const msg = "i love you🤍🤍🤍\nmanusia favorite kuuu🫶🏻🫰🏻";
 
-        // State & Buffer System untuk menekan sensitivitas
         let confirmedState = 'idle';
         const stateBuffer = [];
-        const BUFFER_SIZE = 5; // Butuh 5 frame stabil untuk ganti state
+        const BUFFER_SIZE = 5; 
+
+        // Emoji Configurations
+        const EMOJI_HEART = ['❤️', '💖', '💕', '🥰', '✨'];
+        const EMOJI_ROMANTIC = ['🤍', '🌸', '🌹', '🫶🏻', '🫰🏻', '✨'];
 
         function getDist(p1, p2) {
             return Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2 + (p1.z - p2.z)**2);
         }
 
-        // Cek jari naik terhadap pergelangan tangan (wrist)
         function isFingerUp(lm, tipIdx, jointIdx) {
             return getDist(lm[tipIdx], lm[0]) > getDist(lm[jointIdx], lm[0]);
         }
@@ -273,13 +273,8 @@
             currentFilterIdx = (currentFilterIdx + 1) % filters.length;
             const activeFilter = filters[currentFilterIdx];
             
-            // Clean up
             video.classList.remove('filter-sepia', 'filter-bw', 'filter-vintage', 'filter-neon');
-            
-            // Apply new
-            if (activeFilter !== 'none') {
-                video.classList.add(`filter-${activeFilter}`);
-            }
+            if (activeFilter !== 'none') video.classList.add(`filter-${activeFilter}`);
         };
 
         function renderLoop() {
@@ -290,11 +285,11 @@
         }
         requestAnimationFrame(renderLoop);
 
-        function spawnHeart() {
-            const em = ['❤️', '🌸', '💖', '🥰', '✨'];
+        // Particle Emitter Dinamis
+        function spawnParticles(emojiArray) {
             const p = document.createElement('div');
-            p.className = 'heart-particle';
-            p.innerText = em[Math.floor(Math.random() * em.length)];
+            p.className = 'fly-particle';
+            p.innerText = emojiArray[Math.floor(Math.random() * emojiArray.length)];
             p.style.left = `${Math.random() * 80 + 10}%`;
             p.style.fontSize = `${Math.random() * 1.5 + 2}rem`;
             particles.appendChild(p);
@@ -305,9 +300,9 @@
             if (confirmedState === state) return;
             confirmedState = state;
 
-            // Reset Default State
+            // Reset Sub-systems
             cuteFrame.classList.remove('active');
-            video.classList.remove('blur-active');
+            video.classList.remove('blur-active', 'blur-light');
             filterFab.classList.remove('show');
             
             if (state !== 'one') {
@@ -319,27 +314,28 @@
             switch(state) {
                 case 'idle':
                     statusText.innerText = "Memantau Gestur";
-                    dot.style.background = "#22c55e"; // Hijau
+                    dot.style.background = "#22c55e"; 
                     break;
                 case 'pinky':
                     statusText.innerText = "Filter Mode (Klik Ikon)";
-                    dot.style.background = "#f59e0b"; // Kuning
+                    dot.style.background = "#f59e0b"; 
                     filterFab.classList.add('show');
                     break;
                 case 'two':
-                    statusText.innerText = "2 Jari: Blur Aktif";
-                    dot.style.background = "#64748b"; // Slate
-                    video.classList.add('blur-active');
+                    statusText.innerText = "2 Jari: Blur Total";
+                    dot.style.background = "#64748b"; 
+                    video.classList.add('blur-active'); // Blur kuat
                     break;
                 case 'five':
                     statusText.innerText = "5 Jari: Ceria!";
-                    dot.style.background = "#a855f7"; // Ungu
+                    dot.style.background = "#a855f7"; 
                     cuteFrame.classList.add('active');
                     break;
                 case 'one':
                     statusText.innerText = "1 Jari: Romantis";
-                    dot.style.background = "#ef4444"; // Merah
-                    video.classList.add('blur-active');
+                    dot.style.background = "#ef4444"; 
+                    video.classList.add('blur-light'); // Blur ringan
+                    
                     if (!isTyping) {
                         isTyping = true;
                         let i = 0;
@@ -352,12 +348,12 @@
                     break;
                 case 'heart':
                     statusText.innerText = "Saranghae!";
-                    dot.style.background = "#ec4899"; // Pink
-                    for(let i=0; i<3; i++) setTimeout(spawnHeart, i*200);
+                    dot.style.background = "#ec4899"; 
+                    for(let i=0; i<3; i++) setTimeout(() => spawnParticles(EMOJI_HEART), i*200);
                     break;
                 case 'pinch':
                     statusText.innerText = "Zooming (Cubit)";
-                    dot.style.background = "#3b82f6"; // Biru
+                    dot.style.background = "#3b82f6"; 
                     break;
             }
         }
@@ -389,65 +385,48 @@
                     const pinkyUp = isFingerUp(lm, 20, 17);
 
                     const pinchDist = getDist(lm[4], lm[8]); 
-                    
-                    // Deteksi Kepalan Tangan (Semua jari turun)
                     const isFist = !indexUp && !midUp && !ringUp && !pinkyUp;
 
-                    // 1. Kelingking (Pinky Up) untuk memunculkan ikon Filter
                     if (pinkyUp && !indexUp && !midUp && !ringUp) {
                         rawState = 'pinky';
-                    }
-                    // 2. 5 Jari Terbuka
-                    else if (indexUp && midUp && ringUp && pinkyUp && thumbUp) {
+                    } else if (indexUp && midUp && ringUp && pinkyUp && thumbUp) {
                         rawState = 'five';
-                    }
-                    // 3. 2 Jari (Peace)
-                    else if (indexUp && midUp && !ringUp && !pinkyUp) {
+                    } else if (indexUp && midUp && !ringUp && !pinkyUp) {
                         rawState = 'two';
-                    }
-                    // 4. 1 Jari (Telunjuk)
-                    else if (indexUp && !midUp && !ringUp && !pinkyUp && !thumbUp) {
+                    } else if (indexUp && !midUp && !ringUp && !pinkyUp && !thumbUp) {
                         rawState = 'one';
-                    }
-                    // 5. Half Heart
-                    else if (pinchDist < 0.03 && !midUp && !ringUp && !pinkyUp) {
+                    } else if (pinchDist < 0.03 && !midUp && !ringUp && !pinkyUp) {
                         rawState = 'heart';
-                    }
-                    // 6. Pinch Zoom: Syarat -> Jarak jempol-telunjuk < 0.15 DAN bukan mengepal (isFist == false)
-                    // Ditambahkan !isFist untuk mencegah trigger saat mengepalkan tangan
-                    else if (pinchDist >= 0.03 && pinchDist < 0.15 && !isFist) {
-                        // Pastikan setidaknya jari tengah terbuka sedikit, atau kita abaikan jika murni kepal
-                        if (!midUp && !ringUp) {
-                            rawState = 'pinch';
-                        }
+                    } else if (pinchDist >= 0.03 && pinchDist < 0.15 && !isFist) {
+                        if (!midUp && !ringUp) rawState = 'pinch';
                     }
                 }
 
-                // Eksekusi Kamera Zoom (Bypass Buffer agar pergerakan responsif)
                 if (rawState === 'pinch') {
                     const pDist = getDist(hands[0][4], hands[0][8]);
-                    // Map: Jarak dekat (0.03) = Zoom max (3.5). Jarak jauh (0.15) = Zoom min (1.0).
                     let mappedZoom = 3.5 - ((pDist - 0.03) * (2.5 / 0.12));
                     targetZoom = Math.max(1, Math.min(mappedZoom, 4)); 
                 } else {
                     targetZoom = 1;
                 }
 
-                if (rawState === 'heart' && Math.random() > 0.7) spawnHeart();
-
             } else {
                 targetZoom = 1; 
             }
 
-            // Sistem Buffer/Debounce untuk mengurai false-positive/sensitivitas tinggi
             stateBuffer.push(rawState);
             if (stateBuffer.length > BUFFER_SIZE) stateBuffer.shift();
 
-            // Jika semua history frame identik, baru ubah state
-            const isStable = stateBuffer.every(val => val === rawState);
-            
-            if (isStable) {
+            if (stateBuffer.every(val => val === rawState)) {
                 applyState(rawState);
+            }
+
+            // Continuous Emission sinkron dengan Frame Rate Kamera, berdasarkan `confirmedState`
+            if (confirmedState === 'heart' && Math.random() > 0.7) {
+                spawnParticles(EMOJI_HEART);
+            }
+            if (confirmedState === 'one' && Math.random() > 0.8) {
+                spawnParticles(EMOJI_ROMANTIC);
             }
         }
 
@@ -455,7 +434,7 @@
         hands.setOptions({
             maxNumHands: 2,
             modelComplexity: 1, 
-            minDetectionConfidence: 0.75, // Dinaikkan untuk presisi ketat
+            minDetectionConfidence: 0.75, 
             minTrackingConfidence: 0.75
         });
         hands.onResults(analyzeGestures);
@@ -467,7 +446,7 @@
 
         camera.start().catch(e => {
             console.error(e);
-            document.getElementById('load-text').innerText = "Izin Kamera Ditolak.";
+            document.getElementById('load-text').innerText = "Kamera diblokir oleh peramban.";
             document.querySelector('.spinner').style.display = 'none';
         });
     </script>
