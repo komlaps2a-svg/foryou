@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Smart Gesture Camera V5</title>
+    <title>AI Smart Gesture Camera V5.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -238,7 +238,6 @@
         <div class="romantic-text" id="romantic-text"></div>
         <div id="particles"></div>
 
-        <!-- Tombol Toggle Kiri (Zoom) dan Kanan (Filter) -->
         <div class="fab zoom-fab" id="zoom-fab" onclick="toggleZoomMode()">🔍</div>
         <div class="fab filter-fab" id="filter-fab" onclick="cycleFilter()">🎨</div>
     </div>
@@ -256,10 +255,9 @@
 
         let isLoaded = false;
         
-        // Zoom Core Engine
         let targetZoom = 1;
         let currentZoom = 1;
-        let isZoomModeEnabled = false; // LOCK mechanism untuk mencegah jitter
+        let isZoomModeEnabled = false; 
 
         const filters = ['none', 'sepia', 'vintage', 'bw', 'neon'];
         let currentFilterIdx = 0;
@@ -267,16 +265,13 @@
         let typeInterval = null;
         let isTyping = false;
         
-        // Exact text match per spesifikasi
         const msg = "i love you🤍🤍🤍\nmanusia favorite kuuu🫶🏻🫰🏻";
 
         let confirmedState = 'idle';
         const stateBuffer = [];
-        // Reduksi buffer dari 5 ke 3 untuk merespons gestur lebih cepat (low latency tracking)
         const BUFFER_SIZE = 3; 
 
         const EMOJI_HEART = ['❤️', '💖', '💕', '🥰', '✨'];
-        // Kumpulan emotikon bunga dan love untuk efek partikel
         const EMOJI_ROMANTIC = ['🤍', '🌸', '🌹', '🫶🏻', '🫰🏻', '✨', '🌺', '🌷', '💖', '💐'];
 
         function getDist(p1, p2) {
@@ -287,7 +282,6 @@
             return getDist(lm[tipIdx], lm[0]) > getDist(lm[jointIdx], lm[0]);
         }
 
-        // Feature Toggles
         window.cycleFilter = function() {
             currentFilterIdx = (currentFilterIdx + 1) % filters.length;
             const activeFilter = filters[currentFilterIdx];
@@ -300,14 +294,12 @@
             zoomFab.classList.toggle('active', isZoomModeEnabled);
             
             if (!isZoomModeEnabled) {
-                targetZoom = 1; // Reset instant jika mode dimatikan
+                targetZoom = 1; 
                 if (confirmedState === 'pinch') applyState('idle');
             }
         };
 
-        // Render loop for smooth zoom interpolation
         function renderLoop() {
-            // Factor 0.08 untuk sedikit extra smoothing mengatasi sisa jitter mikro
             currentZoom += (targetZoom - currentZoom) * 0.08;
             const z = Math.max(1, Math.min(currentZoom, 4));
             video.style.transform = `scaleX(-${z}) scaleY(${z})`;
@@ -329,7 +321,6 @@
             if (confirmedState === state) return;
             confirmedState = state;
 
-            // Reset UI
             cuteFrame.classList.remove('active');
             video.classList.remove('blur-active', 'blur-light');
             filterFab.classList.remove('show');
@@ -363,7 +354,7 @@
                 case 'one':
                     statusText.innerText = "1 Jari: Pesan Romantis";
                     dot.style.background = "#ef4444"; 
-                    video.classList.add('blur-light'); // Sedikit blur
+                    video.classList.add('blur-light'); 
                     
                     if (!isTyping) {
                         isTyping = true;
@@ -374,7 +365,6 @@
                             if (i > msg.length) clearInterval(typeInterval);
                         }, 70);
 
-                        // Trigger ledakan partikel seketika saat gestur dikenali
                         for (let j = 0; j < 6; j++) {
                             setTimeout(() => spawnParticles(EMOJI_ROMANTIC), j * 150);
                         }
@@ -427,25 +417,23 @@
                         rawState = 'five';
                     } else if (indexUp && midUp && !ringUp && !pinkyUp) {
                         rawState = 'two';
-                    } else if (indexUp && !midUp && !ringUp && !pinkyUp && !thumbUp) {
+                    } else if (indexUp && !midUp && !ringUp && !pinkyUp) { 
+                        // FIX: Validasi jempol (!thumbUp) dihilangkan. 
+                        // Selama telunjuk naik dan 3 jari lain turun, eksekusi state 'one'.
                         rawState = 'one';
                     } else if (pinchDist < 0.03 && !midUp && !ringUp && !pinkyUp) {
                         rawState = 'heart';
                     } 
-                    // ZOOM STATE LOCK: Hanya izinkan state pinch jika Mode Zoom Aktif
                     else if (isZoomModeEnabled && pinchDist >= 0.03 && pinchDist < 0.15 && !isFist) {
                         if (!midUp && !ringUp) rawState = 'pinch';
                     }
                 }
 
-                // Kalkulasi Skala Zoom hanya jika status confirmed = pinch & Mode Aktif
                 if (rawState === 'pinch' && isZoomModeEnabled) {
                     const pDist = getDist(hands[0][4], hands[0][8]);
                     let mappedZoom = 3.5 - ((pDist - 0.03) * (2.5 / 0.12));
-                    // Inject targetZoom. Pembatasan ekstrim dengan Math.max/min
                     targetZoom = Math.max(1, Math.min(mappedZoom, 4)); 
                 } else if (isZoomModeEnabled && rawState !== 'pinch') {
-                    // Perlahan kembali ke normal jika tangan lepas/mode diganti saat zoom aktif
                     targetZoom = 1;
                 }
 
@@ -453,7 +441,6 @@
                 targetZoom = 1; 
             }
 
-            // Sistem Buffer untuk Akurasi
             stateBuffer.push(rawState);
             if (stateBuffer.length > BUFFER_SIZE) stateBuffer.shift();
 
@@ -461,12 +448,10 @@
                 applyState(rawState);
             }
 
-            // Async Emitters (Spawning Partikel Berkelanjutan)
             if (confirmedState === 'heart' && Math.random() > 0.7) spawnParticles(EMOJI_HEART);
             if (confirmedState === 'one' && Math.random() > 0.6) spawnParticles(EMOJI_ROMANTIC);
         }
 
-        // Parameter Confidences diturunkan sedikit (0.7) untuk mengurangi drop frame = lebih cepat
         const hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
         hands.setOptions({
             maxNumHands: 2,
