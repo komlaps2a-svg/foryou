@@ -3,19 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Gesture Camera Blur</title>
-    <!-- Memuat library MediaPipe -->
+    <title>AI Smart Gesture Camera</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            background-color: #0f172a; /* Slate 900 */
+            background-color: #0f172a;
             color: #f8fafc;
             font-family: system-ui, -apple-system, sans-serif;
             display: flex;
@@ -32,47 +27,117 @@
             max-width: 800px;
             aspect-ratio: 16/9;
             background: #1e293b;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
         }
 
-        /* Video dibalik secara horizontal seperti cermin */
+        /* Video Base */
         video {
+            position: absolute;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1);
-            transition: filter 0.3s ease-in-out;
+            transform: scaleX(-1); /* Default mirror */
+            transition: filter 0.3s ease;
+            transform-origin: center center;
         }
 
-        .blur-active {
-            filter: blur(20px);
+        /* Efek 1: Blur untuk 1 Jari */
+        .blur-active { filter: blur(12px) brightness(0.8); }
+
+        /* Efek 2: Frame Lucu (5 Jari) */
+        .funny-frame {
+            position: absolute;
+            inset: 0;
+            border: 12px dashed transparent;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 20;
+        }
+        .frame-active {
+            border-color: #ff69b4;
+            background: rgba(255, 192, 203, 0.15);
+        }
+        .frame-emoji {
+            position: absolute;
+            font-size: 3rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            animation: bounce 1s infinite alternate;
+        }
+        .frame-active .frame-emoji { opacity: 1; }
+        .tl { top: 10px; left: 10px; }
+        .tr { top: 10px; right: 10px; }
+        .bl { bottom: 10px; left: 10px; }
+        .br { bottom: 10px; right: 10px; animation-delay: 0.5s; }
+
+        @keyframes bounce {
+            from { transform: translateY(0) rotate(-10deg); }
+            to { transform: translateY(-15px) rotate(10deg); }
         }
 
+        /* Efek 3: Teks Mengetik (1 Jari) */
+        .typewriter-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.8), 0 0 20px #ff69b4;
+            z-index: 30;
+            pointer-events: none;
+            padding: 20px;
+            white-space: pre-line;
+            line-height: 1.4;
+        }
+
+        /* Efek 4: Partikel Love */
+        #particles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            bottom: -50px;
+            font-size: 2rem;
+            animation: floatUp 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-120vh) scale(1.5) rotate(360deg); opacity: 0; }
+        }
+
+        /* UI Status */
         .status-badge {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.6);
             padding: 10px 20px;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            z-index: 10;
+            z-index: 50;
             display: flex;
             align-items: center;
             gap: 10px;
             backdrop-filter: blur(4px);
         }
-
         .indicator {
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background-color: #eab308; /* Default Loading: Yellow */
+            background-color: #eab308; 
+            transition: background-color 0.3s;
         }
-
         .loading-screen {
             position: absolute;
             inset: 0;
@@ -81,8 +146,7 @@
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
-            font-weight: 500;
-            z-index: 20;
+            z-index: 100;
             transition: opacity 0.5s ease;
         }
     </style>
@@ -90,14 +154,28 @@
 <body>
 
     <div class="container">
-        <div class="loading-screen" id="loading">Memuat Model AI & Mengakses Kamera...</div>
+        <div class="loading-screen" id="loading">Memuat Model AI...</div>
         
         <div class="status-badge">
             <div class="indicator" id="indicator"></div>
-            <span id="status-text">Inisialisasi...</span>
+            <span id="status-text">Menganalisis Gestur...</span>
         </div>
 
         <video class="input_video" autoplay playsinline></video>
+
+        <!-- Overlay Frame -->
+        <div class="funny-frame" id="funny-frame">
+            <div class="frame-emoji tl">🤪</div>
+            <div class="frame-emoji tr">🤡</div>
+            <div class="frame-emoji bl">✨</div>
+            <div class="frame-emoji br">🤣</div>
+        </div>
+
+        <!-- Overlay Teks -->
+        <div class="typewriter-text" id="text-overlay"></div>
+
+        <!-- Wadah Partikel Love -->
+        <div id="particles"></div>
     </div>
 
     <script>
@@ -105,68 +183,207 @@
         const statusText = document.getElementById('status-text');
         const indicator = document.getElementById('indicator');
         const loadingScreen = document.getElementById('loading');
+        
+        const frameOverlay = document.getElementById('funny-frame');
+        const textOverlay = document.getElementById('text-overlay');
+        const particlesContainer = document.getElementById('particles');
 
         let isModelLoaded = false;
+        
+        // State Management
+        let currentState = 'idle';
+        let targetZoom = 1;
+        let currentZoom = 1;
+        
+        // Typing Effect State
+        let isTyping = false;
+        let typeInterval = null;
+        const textToType = "i love you🤍🤍\nmanusia favorite kuuu.";
 
-        // Logika untuk memproses hasil deteksi landmark tangan
+        // Kalkulasi Jarak Euclidean
+        function getDistance(p1, p2) {
+            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        }
+
+        // Render Loop untuk Zoom Interpolation yang halus
+        function renderLoop() {
+            // Lerp (Linear Interpolation) untuk transisi zoom mulus
+            currentZoom += (targetZoom - currentZoom) * 0.1;
+            
+            // Batasi zoom minimum 1x dan maksimum 3x
+            const clampedZoom = Math.max(1, Math.min(currentZoom, 3));
+            
+            // Terapkan skala, dan tetap pertahankan efek mirror (scaleX(-1))
+            videoElement.style.transform = `scaleX(-${clampedZoom}) scaleY(${clampedZoom})`;
+            
+            requestAnimationFrame(renderLoop);
+        }
+        requestAnimationFrame(renderLoop);
+
+        function spawnHeart() {
+            if (currentState !== 'heart') return;
+            const emojis = ['❤️', '🌸', '💖', '🥰', '✨'];
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+            particle.style.left = `${Math.random() * 90 + 5}%`;
+            particlesContainer.appendChild(particle);
+            setTimeout(() => particle.remove(), 3000);
+        }
+
+        function handleStateChange(newState) {
+            if (currentState === newState) return;
+            currentState = newState;
+
+            // Reset UI
+            frameOverlay.classList.remove('frame-active');
+            videoElement.classList.remove('blur-active');
+            
+            if (currentState !== 'one_finger') {
+                clearInterval(typeInterval);
+                isTyping = false;
+                textOverlay.innerHTML = '';
+            }
+
+            // Apply New State UI
+            switch(newState) {
+                case 'idle':
+                    statusText.innerText = "Kamera Normal";
+                    indicator.style.backgroundColor = "#22c55e"; // Hijau
+                    targetZoom = 1;
+                    break;
+                case 'five_fingers':
+                    statusText.innerText = "5 Jari: Frame Lucu!";
+                    indicator.style.backgroundColor = "#a855f7"; // Ungu
+                    frameOverlay.classList.add('frame-active');
+                    targetZoom = 1;
+                    break;
+                case 'heart':
+                    statusText.innerText = "Love Terdeteksi!";
+                    indicator.style.backgroundColor = "#ec4899"; // Pink
+                    targetZoom = 1;
+                    // Trigger partikel
+                    for(let i=0; i<3; i++) setTimeout(spawnHeart, i * 200);
+                    break;
+                case 'pinch':
+                    statusText.innerText = "Zooming...";
+                    indicator.style.backgroundColor = "#3b82f6"; // Biru
+                    break;
+                case 'one_finger':
+                    statusText.innerText = "Mode Romantis";
+                    indicator.style.backgroundColor = "#ef4444"; // Merah
+                    videoElement.classList.add('blur-active');
+                    targetZoom = 1;
+                    
+                    if (!isTyping) {
+                        isTyping = true;
+                        let i = 0;
+                        textOverlay.innerHTML = '';
+                        typeInterval = setInterval(() => {
+                            textOverlay.innerHTML = textToType.substring(0, i).replace(/\n/g, '<br>');
+                            i++;
+                            if (i > textToType.length) clearInterval(typeInterval);
+                        }, 100);
+                    }
+                    break;
+            }
+        }
+
         function onResults(results) {
-            // Sembunyikan layar loading saat frame pertama berhasil diproses
             if (!isModelLoaded) {
                 isModelLoaded = true;
                 loadingScreen.style.opacity = '0';
                 setTimeout(() => loadingScreen.style.display = 'none', 500);
             }
 
-            let twoFingersDetected = false;
+            const hands = results.multiHandLandmarks;
+            let detectedState = 'idle';
 
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                // Ambil tangan pertama yang terdeteksi
-                const landmarks = results.multiHandLandmarks[0];
-
-                // Deteksi jari terangkat: Koordinat Y ujung jari lebih kecil (lebih tinggi di layar) dari sendi bawahnya.
-                // Index 8 = Ujung Telunjuk, Index 6 = Sendi Telunjuk
-                // Index 12 = Ujung Tengah, Index 10 = Sendi Tengah
-                // Index 16 = Ujung Manis, Index 14 = Sendi Manis
-                // Index 20 = Ujung Kelingking, Index 18 = Sendi Kelingking
-                
-                const isIndexUp = landmarks[8].y < landmarks[6].y;
-                const isMiddleUp = landmarks[12].y < landmarks[10].y;
-                const isRingDown = landmarks[16].y > landmarks[14].y;
-                const isPinkyDown = landmarks[20].y > landmarks[18].y;
-
-                // Syarat: Telunjuk dan Tengah NAIK, Manis dan Kelingking TURUN (Pose 'Peace'/2 Jari)
-                if (isIndexUp && isMiddleUp && isRingDown && isPinkyDown) {
-                    twoFingersDetected = true;
+            if (hands && hands.length > 0) {
+                // Prioritas 1: Full Heart (2 Tangan)
+                if (hands.length === 2) {
+                    const distIndex = getDistance(hands[0][8], hands[1][8]);
+                    const distThumb = getDistance(hands[0][4], hands[1][4]);
+                    
+                    if (distIndex < 0.1 && distThumb < 0.1) {
+                        detectedState = 'heart';
+                    }
                 }
+
+                // Analisis 1 tangan jika belum ada state prioritas
+                if (detectedState === 'idle') {
+                    const lm = hands[0];
+                    
+                    // Deteksi Jari Terangkat (Logika Y koordinat)
+                    const indexUp = lm[8].y < lm[6].y;
+                    const middleUp = lm[12].y < lm[10].y;
+                    const ringUp = lm[16].y < lm[14].y;
+                    const pinkyUp = lm[20].y < lm[18].y;
+
+                    // Jarak antara ujung Jempol(4) dan ujung Telunjuk(8)
+                    const pinchDist = getDistance(lm[4], lm[8]);
+
+                    if (indexUp && middleUp && ringUp && pinkyUp) {
+                        // Prioritas 2: 5 Jari (Frame Lucu)
+                        detectedState = 'five_fingers';
+                    } 
+                    else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+                        // Prioritas 3: 1 Jari Telunjuk ke Atas ATAU Pinch Out
+                        // Bedakan 1 Jari Pointing vs Pinch. Jika menunjuk atas, Telunjuk jauh di atas jempol.
+                        if (lm[8].y < lm[4].y - 0.08) {
+                            detectedState = 'one_finger';
+                        } else {
+                            detectedState = 'pinch';
+                        }
+                    }
+                    else if (!middleUp && !ringUp && !pinkyUp) {
+                        // Prioritas 4: Half Heart (Korean Heart) vs Pinch
+                        // Jika jempol dan telunjuk menyilang sangat dekat = Heart
+                        if (pinchDist < 0.035) {
+                            detectedState = 'heart';
+                        } 
+                        // Jika jarak sedang, anggap itu gestur Cubit (Zoom)
+                        else if (pinchDist >= 0.035 && pinchDist < 0.3) {
+                            detectedState = 'pinch';
+                        }
+                    }
+                }
+                
+                // Eksekusi logika Zooming dinamis jika state adalah 'pinch'
+                if (detectedState === 'pinch') {
+                    const lm = hands[0];
+                    const pinchDist = getDistance(lm[4], lm[8]);
+                    // Map jarak pinch (0.04 - 0.2) ke Zoom Level (3x - 1x)
+                    // Mencubit tutup (jarak kecil) = Zoom In (3x)
+                    // Membuka cubitan (jarak besar) = Zoom Out / Menjauh (1x)
+                    targetZoom = 3 - ((pinchDist - 0.04) * (2 / 0.16)); 
+                }
+
+                // Terus trigger spawn heart jika state menetap
+                if (detectedState === 'heart' && Math.random() > 0.5) {
+                    spawnHeart();
+                }
+            } else {
+                targetZoom = 1; // Reset zoom jika tangan hilang
             }
 
-            // Manipulasi DOM berdasarkan deteksi
-            if (twoFingersDetected) {
-                videoElement.classList.add('blur-active');
-                statusText.innerText = "2 Jari Terdeteksi (Blur ON)";
-                indicator.style.backgroundColor = "#ef4444"; // Merah
-            } else {
-                videoElement.classList.remove('blur-active');
-                statusText.innerText = "Kamera Normal";
-                indicator.style.backgroundColor = "#22c55e"; // Hijau
-            }
+            handleStateChange(detectedState);
         }
 
-        // Konfigurasi MediaPipe Hands
+        // Setup MediaPipe
         const hands = new Hands({locateFile: (file) => {
             return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
         }});
         
         hands.setOptions({
-            maxNumHands: 1, // Hanya melacak 1 tangan untuk efisiensi
+            maxNumHands: 2, // Diubah ke 2 untuk mendukung Full Love
             modelComplexity: 1,
-            minDetectionConfidence: 0.6,
-            minTrackingConfidence: 0.5
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
         });
         
         hands.onResults(onResults);
 
-        // Inisialisasi Kamera dan kirim frame ke MediaPipe
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({image: videoElement});
@@ -175,10 +392,9 @@
             height: 720
         });
 
-        // Jalankan
         camera.start().catch(err => {
-            console.error("Gagal mengakses kamera:", err);
-            loadingScreen.innerText = "Akses Kamera Ditolak / Tidak Ditemukan.";
+            console.error(err);
+            loadingScreen.innerText = "Akses Kamera Gagal.";
             indicator.style.backgroundColor = "#ef4444";
         });
     </script>
