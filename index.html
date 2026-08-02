@@ -116,6 +116,7 @@
             bottom: -10%;
             font-size: 2.5rem;
             animation: flyUp 3.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.4));
         }
         @keyframes flyUp {
             0% { transform: translateY(0) scale(0.5) rotate(-20deg); opacity: 0; }
@@ -275,7 +276,8 @@
         const BUFFER_SIZE = 3; 
 
         const EMOJI_HEART = ['❤️', '💖', '💕', '🥰', '✨'];
-        const EMOJI_ROMANTIC = ['🤍', '🌸', '🌹', '🫶🏻', '🫰🏻', '✨'];
+        // Kumpulan emotikon bunga dan love untuk efek partikel
+        const EMOJI_ROMANTIC = ['🤍', '🌸', '🌹', '🫶🏻', '🫰🏻', '✨', '🌺', '🌷', '💖', '💐'];
 
         function getDist(p1, p2) {
             return Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2 + (p1.z - p2.z)**2);
@@ -359,9 +361,9 @@
                     cuteFrame.classList.add('active');
                     break;
                 case 'one':
-                    statusText.innerText = "1 Jari: Romantis";
+                    statusText.innerText = "1 Jari: Pesan Romantis";
                     dot.style.background = "#ef4444"; 
-                    video.classList.add('blur-light'); 
+                    video.classList.add('blur-light'); // Sedikit blur
                     
                     if (!isTyping) {
                         isTyping = true;
@@ -371,6 +373,11 @@
                             i++;
                             if (i > msg.length) clearInterval(typeInterval);
                         }, 70);
+
+                        // Trigger ledakan partikel seketika saat gestur dikenali
+                        for (let j = 0; j < 6; j++) {
+                            setTimeout(() => spawnParticles(EMOJI_ROMANTIC), j * 150);
+                        }
                     }
                     break;
                 case 'heart':
@@ -454,9 +461,9 @@
                 applyState(rawState);
             }
 
-            // Async Emitters
+            // Async Emitters (Spawning Partikel Berkelanjutan)
             if (confirmedState === 'heart' && Math.random() > 0.7) spawnParticles(EMOJI_HEART);
-            if (confirmedState === 'one' && Math.random() > 0.8) spawnParticles(EMOJI_ROMANTIC);
+            if (confirmedState === 'one' && Math.random() > 0.6) spawnParticles(EMOJI_ROMANTIC);
         }
 
         // Parameter Confidences diturunkan sedikit (0.7) untuk mengurangi drop frame = lebih cepat
