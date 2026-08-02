@@ -2,17 +2,15 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Smart Gesture Camera V2</title>
-    <!-- Import Font Lucu -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI Smart Gesture Camera V3</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- MediaPipe Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <style>
         :root {
             --primary: #ff69b4;
-            --surface: rgba(30, 41, 59, 0.7);
+            --surface: rgba(15, 23, 42, 0.75);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,13 +18,12 @@
         body {
             background-color: #000;
             color: #fff;
-            font-family: 'Fredoka', sans-serif; /* Font baru yang lebih playful */
+            font-family: 'Fredoka', sans-serif;
             overflow: hidden;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh; /* Dynamic viewport fix untuk mobile */
         }
 
-        /* Container full screen untuk support Portrait & Landscape */
         .container {
             position: relative;
             width: 100%;
@@ -45,20 +42,23 @@
             transform: scaleX(-1);
             transition: filter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             transform-origin: center center;
-            will-change: transform, filter; /* Optimasi render */
+            will-change: transform, filter;
         }
 
-        /* Filter Classes */
+        /* Filter Core */
         .blur-active { filter: blur(15px) brightness(0.9); }
         .filter-sepia { filter: sepia(0.8); }
         .filter-bw { filter: grayscale(1); }
         .filter-vintage { filter: contrast(1.2) saturate(1.5) sepia(0.3) hue-rotate(-15deg); }
+        .filter-neon { filter: saturate(2) hue-rotate(90deg) contrast(1.5); }
 
-        /* Frame Lucu & Emoji Animasi */
+        /* FIX: Bingkai Landscape tidak terpotong */
         .cute-frame {
             position: absolute;
-            inset: 20px;
-            border: 8px dotted var(--primary);
+            /* Inset 0 & margin memastikan frame menempel tepi dalam layar dengan margin aman */
+            inset: 0;
+            margin: min(3vw, 20px);
+            border: min(2vw, 12px) dotted var(--primary);
             border-radius: 24px;
             pointer-events: none;
             opacity: 0;
@@ -74,26 +74,19 @@
 
         .animated-emoji {
             position: absolute;
-            font-size: 3.5rem;
+            font-size: clamp(2rem, 6vw, 4rem);
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
         }
-        .e-1 { top: -20px; left: -20px; animation: float 3s ease-in-out infinite; }
-        .e-2 { top: -20px; right: -20px; animation: float 3s ease-in-out infinite 1s; }
-        .e-3 { bottom: -20px; left: -20px; animation: float 3s ease-in-out infinite 0.5s; }
-        .e-4 { bottom: -20px; right: -20px; animation: float 3s ease-in-out infinite 1.5s; }
-        .e-5 { top: 40%; left: -30px; animation: pulseRotate 2s infinite; }
-        .e-6 { top: 40%; right: -30px; animation: pulseRotate 2s infinite 1s; }
+        .e-1 { top: -2%; left: -2%; animation: float 3s ease-in-out infinite; }
+        .e-2 { top: -2%; right: -2%; animation: float 3s ease-in-out infinite 1s; }
+        .e-3 { bottom: -2%; left: -2%; animation: float 3s ease-in-out infinite 0.5s; }
+        .e-4 { bottom: -2%; right: -2%; animation: float 3s ease-in-out infinite 1.5s; }
 
         @keyframes float {
             0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(15deg); }
-        }
-        @keyframes pulseRotate {
-            0%, 100% { transform: scale(1) rotate(-10deg); }
-            50% { transform: scale(1.2) rotate(10deg); }
+            50% { transform: translateY(-15px) rotate(15deg); }
         }
 
-        /* Typewriter Text (1 Jari) */
         .romantic-text {
             position: absolute;
             inset: 0;
@@ -104,7 +97,7 @@
             font-size: clamp(2rem, 5vw, 4rem);
             font-weight: 700;
             color: #fff;
-            text-shadow: 0 5px 15px rgba(0,0,0,0.6), 0 0 20px var(--primary);
+            text-shadow: 0 5px 15px rgba(0,0,0,0.8), 0 0 20px var(--primary);
             z-index: 30;
             pointer-events: none;
             padding: 20px;
@@ -112,7 +105,6 @@
             line-height: 1.3;
         }
 
-        /* Particles */
         #particles {
             position: absolute;
             inset: 0;
@@ -131,85 +123,77 @@
             100% { transform: translateY(-120vh) scale(1.8) rotate(45deg); opacity: 0; }
         }
 
-        /* Filter Menu UI */
-        .filter-menu {
+        /* Minimalist Filter Icon (Kelingking) */
+        .filter-fab {
             position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 15px 25px;
-            border-radius: 30px;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
             display: flex;
-            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
             z-index: 100;
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(255,255,255,0.3);
-            pointer-events: none; /* Disabled when hidden */
-        }
-        .filter-menu.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-            pointer-events: auto; /* Clickable when visible */
-        }
-        .filter-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.5);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
-        .filter-btn:hover, .filter-btn.active {
+        .filter-fab.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+        .filter-fab:active {
+            transform: scale(0.9);
             background: var(--primary);
-            transform: scale(1.1);
         }
 
-        /* Status Badge */
         .status {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: env(safe-area-inset-top, 20px);
+            left: env(safe-area-inset-left, 20px);
             background: var(--surface);
-            padding: 8px 16px;
-            border-radius: 12px;
+            padding: 10px 20px;
+            border-radius: 16px;
             font-weight: 600;
             z-index: 50;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         .dot {
-            width: 10px; height: 10px; border-radius: 50%;
+            width: 12px; height: 12px; border-radius: 50%;
             background: #eab308; transition: 0.3s;
         }
 
-        /* Loading */
         .loader {
             position: absolute;
             inset: 0;
-            background: #000;
+            background: #09090b;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 999;
             transition: opacity 0.5s;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             gap: 20px;
         }
         .spinner {
             width: 40px; height: 40px;
-            border: 4px solid rgba(255,255,255,0.3);
+            border: 4px solid rgba(255,255,255,0.1);
             border-top: 4px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -221,7 +205,7 @@
 
     <div class="loader" id="loader">
         <div class="spinner"></div>
-        <span>Membangunkan AI...</span>
+        <span id="load-text">Membangunkan AI (Membutuhkan Internet)...</span>
     </div>
 
     <div class="container">
@@ -229,32 +213,21 @@
 
         <div class="status">
             <div class="dot" id="dot"></div>
-            <span id="status-text">Siap</span>
+            <span id="status-text">Kalibrasi Kamera...</span>
         </div>
 
-        <!-- Frame Lucu 5 Jari -->
         <div class="cute-frame" id="cute-frame">
             <div class="animated-emoji e-1">🥰</div>
             <div class="animated-emoji e-2">✨</div>
             <div class="animated-emoji e-3">🌸</div>
             <div class="animated-emoji e-4">🦋</div>
-            <div class="animated-emoji e-5">💖</div>
-            <div class="animated-emoji e-6">💫</div>
         </div>
 
-        <!-- Teks Romantis 1 Jari -->
         <div class="romantic-text" id="romantic-text"></div>
-
-        <!-- Partikel Love -->
         <div id="particles"></div>
 
-        <!-- Menu Filter (Gestur OK) -->
-        <div class="filter-menu" id="filter-menu">
-            <button class="filter-btn active" onclick="setFilter('none')">Normal</button>
-            <button class="filter-btn" onclick="setFilter('sepia')">Warm</button>
-            <button class="filter-btn" onclick="setFilter('bw')">B&W</button>
-            <button class="filter-btn" onclick="setFilter('vintage')">Vintage</button>
-        </div>
+        <!-- Ikon Filter Minimalis -->
+        <div class="filter-fab" id="filter-fab" onclick="cycleFilter()">🎨</div>
     </div>
 
     <script>
@@ -265,87 +238,77 @@
         const cuteFrame = document.getElementById('cute-frame');
         const textOverlay = document.getElementById('romantic-text');
         const particles = document.getElementById('particles');
-        const filterMenu = document.getElementById('filter-menu');
+        const filterFab = document.getElementById('filter-fab');
 
         let isLoaded = false;
-        let currentState = 'idle';
         
         // Zoom Engine
         let targetZoom = 1;
         let currentZoom = 1;
 
-        // UI States
-        let isMenuOpen = false;
-        let lastOkTime = 0;
-        let currentFilter = 'none';
+        // Filter Logic
+        const filters = ['none', 'sepia', 'vintage', 'bw', 'neon'];
+        let currentFilterIdx = 0;
 
         // Typing State
         let typeInterval = null;
         let isTyping = false;
         const msg = "i love you🤍🤍\nmanusia favorite kuuu.";
 
-        // --- MATH & LOGIC ---
+        // State & Buffer System untuk menekan sensitivitas
+        let confirmedState = 'idle';
+        const stateBuffer = [];
+        const BUFFER_SIZE = 5; // Butuh 5 frame stabil untuk ganti state
+
         function getDist(p1, p2) {
             return Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2 + (p1.z - p2.z)**2);
         }
 
-        // Logic baru: Cek apakah jari terangkat berdasarkan jarak ke pergelangan tangan (wrist = index 0)
-        // Jika ujung jari (tip) lebih jauh dari sendi pangkal (mcp/pip) terhadap pergelangan, berarti jari terbuka.
+        // Cek jari naik terhadap pergelangan tangan (wrist)
         function isFingerUp(lm, tipIdx, jointIdx) {
-            const tipToWrist = getDist(lm[tipIdx], lm[0]);
-            const jointToWrist = getDist(lm[jointIdx], lm[0]);
-            return tipToWrist > jointToWrist;
+            return getDist(lm[tipIdx], lm[0]) > getDist(lm[jointIdx], lm[0]);
         }
 
-        // --- RENDER ENGINE (60FPS Zoom Interpolation) ---
+        window.cycleFilter = function() {
+            currentFilterIdx = (currentFilterIdx + 1) % filters.length;
+            const activeFilter = filters[currentFilterIdx];
+            
+            // Clean up
+            video.classList.remove('filter-sepia', 'filter-bw', 'filter-vintage', 'filter-neon');
+            
+            // Apply new
+            if (activeFilter !== 'none') {
+                video.classList.add(`filter-${activeFilter}`);
+            }
+        };
+
         function renderLoop() {
-            // Lerp dengan faktor 0.1 untuk kehalusan gerakan
             currentZoom += (targetZoom - currentZoom) * 0.1;
-            
-            // Batasi zoom (1x to 4x)
             const z = Math.max(1, Math.min(currentZoom, 4));
-            
-            // Apply transform. ScaleX negatif untuk mirror.
             video.style.transform = `scaleX(-${z}) scaleY(${z})`;
             requestAnimationFrame(renderLoop);
         }
         requestAnimationFrame(renderLoop);
 
-        // --- EFFECTS ---
         function spawnHeart() {
-            const em = ['❤️', '🌸', '💖', '🥰', '✨', '💕'];
+            const em = ['❤️', '🌸', '💖', '🥰', '✨'];
             const p = document.createElement('div');
             p.className = 'heart-particle';
             p.innerText = em[Math.floor(Math.random() * em.length)];
             p.style.left = `${Math.random() * 80 + 10}%`;
-            p.style.fontSize = `${Math.random() * 2 + 2}rem`;
+            p.style.fontSize = `${Math.random() * 1.5 + 2}rem`;
             particles.appendChild(p);
             setTimeout(() => p.remove(), 3500);
         }
 
-        window.setFilter = function(filterName) {
-            currentFilter = filterName;
-            
-            // Hapus semua class filter
-            video.classList.remove('filter-sepia', 'filter-bw', 'filter-vintage');
-            
-            // Hapus class active di tombol
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+        function applyState(state) {
+            if (confirmedState === state) return;
+            confirmedState = state;
 
-            // Apply filter baru (selain efek blur gestur)
-            if(filterName === 'sepia') video.classList.add('filter-sepia');
-            if(filterName === 'bw') video.classList.add('filter-bw');
-            if(filterName === 'vintage') video.classList.add('filter-vintage');
-        };
-
-        function updateUI(state) {
-            if (currentState === state) return;
-            currentState = state;
-
-            // Reset Default UI
+            // Reset Default State
             cuteFrame.classList.remove('active');
             video.classList.remove('blur-active');
+            filterFab.classList.remove('show');
             
             if (state !== 'one') {
                 clearInterval(typeInterval);
@@ -356,27 +319,27 @@
             switch(state) {
                 case 'idle':
                     statusText.innerText = "Memantau Gestur";
-                    dot.style.background = "#22c55e";
+                    dot.style.background = "#22c55e"; // Hijau
                     break;
-                case 'ok':
-                    statusText.innerText = "Gestur OK: Menu Filter";
-                    dot.style.background = "#f59e0b";
+                case 'pinky':
+                    statusText.innerText = "Filter Mode (Klik Ikon)";
+                    dot.style.background = "#f59e0b"; // Kuning
+                    filterFab.classList.add('show');
                     break;
                 case 'two':
-                    statusText.innerText = "2 Jari: Mode Blur";
-                    dot.style.background = "#64748b";
+                    statusText.innerText = "2 Jari: Blur Aktif";
+                    dot.style.background = "#64748b"; // Slate
                     video.classList.add('blur-active');
                     break;
                 case 'five':
-                    statusText.innerText = "5 Jari: Mode Lucu";
-                    dot.style.background = "#a855f7";
+                    statusText.innerText = "5 Jari: Ceria!";
+                    dot.style.background = "#a855f7"; // Ungu
                     cuteFrame.classList.add('active');
                     break;
                 case 'one':
-                    statusText.innerText = "1 Jari: Mode Romantis";
-                    dot.style.background = "#ef4444";
+                    statusText.innerText = "1 Jari: Romantis";
+                    dot.style.background = "#ef4444"; // Merah
                     video.classList.add('blur-active');
-                    
                     if (!isTyping) {
                         isTyping = true;
                         let i = 0;
@@ -384,22 +347,21 @@
                             textOverlay.innerHTML = msg.substring(0, i).replace(/\n/g, '<br>');
                             i++;
                             if (i > msg.length) clearInterval(typeInterval);
-                        }, 80);
+                        }, 70);
                     }
                     break;
                 case 'heart':
                     statusText.innerText = "Saranghae!";
-                    dot.style.background = "#ec4899";
-                    for(let i=0; i<4; i++) setTimeout(spawnHeart, i*150);
+                    dot.style.background = "#ec4899"; // Pink
+                    for(let i=0; i<3; i++) setTimeout(spawnHeart, i*200);
                     break;
                 case 'pinch':
-                    statusText.innerText = "Mencubit: Zoom Aktif";
-                    dot.style.background = "#3b82f6";
+                    statusText.innerText = "Zooming (Cubit)";
+                    dot.style.background = "#3b82f6"; // Biru
                     break;
             }
         }
 
-        // --- CORE DETECTION LOGIC ---
         function analyzeGestures(results) {
             if (!isLoaded) {
                 isLoaded = true;
@@ -408,93 +370,93 @@
             }
 
             const hands = results.multiHandLandmarks;
-            let detected = 'idle';
+            let rawState = 'idle';
 
             if (hands && hands.length > 0) {
-                // Analisa 2 Tangan (Full Heart Priority)
                 if (hands.length === 2) {
                     const dIdx = getDist(hands[0][8], hands[1][8]);
                     const dThumb = getDist(hands[0][4], hands[1][4]);
-                    if (dIdx < 0.1 && dThumb < 0.1) detected = 'heart';
+                    if (dIdx < 0.1 && dThumb < 0.1) rawState = 'heart';
                 }
 
-                // Analisa 1 Tangan
-                if (detected === 'idle') {
+                if (rawState === 'idle') {
                     const lm = hands[0];
                     
-                    // Deteksi jari menggunakan jarak relatif terhadap pergelangan tangan untuk stabilitas rotasi
-                    // Thumb (4) vs (2), Index (8) vs (5), Middle (12) vs (9), Ring (16) vs (13), Pinky (20) vs (17)
                     const thumbUp = getDist(lm[4], lm[0]) > getDist(lm[2], lm[0]);
                     const indexUp = isFingerUp(lm, 8, 5);
                     const midUp = isFingerUp(lm, 12, 9);
                     const ringUp = isFingerUp(lm, 16, 13);
                     const pinkyUp = isFingerUp(lm, 20, 17);
 
-                    const pinchDist = getDist(lm[4], lm[8]); // Jarak Jempol - Telunjuk
+                    const pinchDist = getDist(lm[4], lm[8]); 
+                    
+                    // Deteksi Kepalan Tangan (Semua jari turun)
+                    const isFist = !indexUp && !midUp && !ringUp && !pinkyUp;
 
-                    // 1. Gestur OK (Jempol & Telunjuk menempel, jari lain naik)
-                    if (pinchDist < 0.05 && midUp && ringUp && pinkyUp) {
-                        detected = 'ok';
-                        
-                        // Debounce toggle menu (1 detik)
-                        const now = Date.now();
-                        if (now - lastOkTime > 1000) {
-                            isMenuOpen = !isMenuOpen;
-                            filterMenu.classList.toggle('show', isMenuOpen);
-                            lastOkTime = now;
-                        }
+                    // 1. Kelingking (Pinky Up) untuk memunculkan ikon Filter
+                    if (pinkyUp && !indexUp && !midUp && !ringUp) {
+                        rawState = 'pinky';
                     }
-                    // 2. 5 Jari (Semua naik terbuka)
+                    // 2. 5 Jari Terbuka
                     else if (indexUp && midUp && ringUp && pinkyUp && thumbUp) {
-                        detected = 'five';
+                        rawState = 'five';
                     }
-                    // 3. 2 Jari (Peace / V Sign) - Telunjuk & Tengah naik, lainnya turun
+                    // 3. 2 Jari (Peace)
                     else if (indexUp && midUp && !ringUp && !pinkyUp) {
-                        detected = 'two';
+                        rawState = 'two';
                     }
-                    // 4. 1 Jari (Telunjuk naik, lainnya turun)
-                    else if (indexUp && !midUp && !ringUp && !pinkyUp) {
-                        detected = 'one';
+                    // 4. 1 Jari (Telunjuk)
+                    else if (indexUp && !midUp && !ringUp && !pinkyUp && !thumbUp) {
+                        rawState = 'one';
                     }
-                    // 5. Half Heart (Korean Heart) - Jempol & Telunjuk menyilang
+                    // 5. Half Heart
                     else if (pinchDist < 0.03 && !midUp && !ringUp && !pinkyUp) {
-                        detected = 'heart';
+                        rawState = 'heart';
                     }
-                    // 6. Pinch Zoom (Jempol & Telunjuk berdekatan, jari lain rileks)
-                    else if (pinchDist >= 0.03 && pinchDist < 0.2 && !midUp && !ringUp && !pinkyUp) {
-                        detected = 'pinch';
+                    // 6. Pinch Zoom: Syarat -> Jarak jempol-telunjuk < 0.15 DAN bukan mengepal (isFist == false)
+                    // Ditambahkan !isFist untuk mencegah trigger saat mengepalkan tangan
+                    else if (pinchDist >= 0.03 && pinchDist < 0.15 && !isFist) {
+                        // Pastikan setidaknya jari tengah terbuka sedikit, atau kita abaikan jika murni kepal
+                        if (!midUp && !ringUp) {
+                            rawState = 'pinch';
+                        }
                     }
                 }
 
-                // Eksekusi Kamera Zoom jika state Pinch
-                if (detected === 'pinch') {
-                    const lm = hands[0];
-                    const pDist = getDist(lm[4], lm[8]);
-                    // Map jarak (0.03 tutup - 0.2 buka) ke Zoom (3.5x Zoom In - 1x Normal)
-                    // Logic: Semakin kecil cubitan, semakin besar zoom.
-                    let mappedZoom = 3.5 - ((pDist - 0.03) * (2.5 / 0.17));
+                // Eksekusi Kamera Zoom (Bypass Buffer agar pergerakan responsif)
+                if (rawState === 'pinch') {
+                    const pDist = getDist(hands[0][4], hands[0][8]);
+                    // Map: Jarak dekat (0.03) = Zoom max (3.5). Jarak jauh (0.15) = Zoom min (1.0).
+                    let mappedZoom = 3.5 - ((pDist - 0.03) * (2.5 / 0.12));
                     targetZoom = Math.max(1, Math.min(mappedZoom, 4)); 
-                } else if (detected !== 'idle') {
-                    // Reset zoom perlahan jika tidak sedang mencubit
+                } else {
                     targetZoom = 1;
                 }
 
-                if (detected === 'heart' && Math.random() > 0.6) spawnHeart();
+                if (rawState === 'heart' && Math.random() > 0.7) spawnHeart();
 
             } else {
-                targetZoom = 1; // Reset zoom jika tangan tidak ada
+                targetZoom = 1; 
             }
 
-            updateUI(detected);
+            // Sistem Buffer/Debounce untuk mengurai false-positive/sensitivitas tinggi
+            stateBuffer.push(rawState);
+            if (stateBuffer.length > BUFFER_SIZE) stateBuffer.shift();
+
+            // Jika semua history frame identik, baru ubah state
+            const isStable = stateBuffer.every(val => val === rawState);
+            
+            if (isStable) {
+                applyState(rawState);
+            }
         }
 
-        // --- INIT MEDIAPIPE ---
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        const hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
         hands.setOptions({
             maxNumHands: 2,
-            modelComplexity: 1, // Keseimbangan performa & akurasi
-            minDetectionConfidence: 0.65, // Diturunkan sedikit agar lebih responsif
-            minTrackingConfidence: 0.65
+            modelComplexity: 1, 
+            minDetectionConfidence: 0.75, // Dinaikkan untuk presisi ketat
+            minTrackingConfidence: 0.75
         });
         hands.onResults(analyzeGestures);
 
@@ -504,8 +466,9 @@
         });
 
         camera.start().catch(e => {
-            console.error("Camera Error:", e);
-            loader.innerHTML = "<span>Izin Kamera Ditolak / Gagal Diakses</span>";
+            console.error(e);
+            document.getElementById('load-text').innerText = "Izin Kamera Ditolak.";
+            document.querySelector('.spinner').style.display = 'none';
         });
     </script>
 </body>
